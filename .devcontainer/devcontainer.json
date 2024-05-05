@@ -4,6 +4,10 @@
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21"
     },
+    "ghcr.io/devcontainers/features/nvidia-cuda:1": {
+      "installCudnn": true,
+      "installToolkit": true
+    },
     "ghcr.io/devcontainers-contrib/features/leiningen-sdkman:2": {},
     "ghcr.io/devcontainers-contrib/features/clojure-asdf:2": {},
     "ghcr.io/devcontainers/features/desktop-lite:1": {},
