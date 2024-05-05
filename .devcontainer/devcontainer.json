@@ -1,0 +1,45 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17"
+    },
+    "ghcr.io/devcontainers-contrib/features/clojure-asdf:2": {},
+    "ghcr.io/devcontainers/features/desktop-lite:1": {},
+    "ghcr.io/devcontainers-contrib/features/apt-get-packages:1": {
+      "ppas": ["ppa:ubuntuhandbook1/emacs"],
+      "packages": "emacs,rlwrap,fonts-hack"
+    },
+    "ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }, 
+    "ghcr.io/wxw-matt/devcontainer-features/command_runner:latest": {
+            "command1": "bash < <(curl -s https://raw.githubusercontent.com/clojure-lsp/clojure-lsp/master/install)",
+            "command2": "bash < <(curl -s ttps://raw.githubusercontent.com/babashka/babashka/master/install)"
+        }
+  },
+  "overrideFeatureInstallOrder": [
+    "ghcr.io/devcontainers/features/java",
+    "ghcr.io/devcontainers-contrib/features/clojure-asdf",
+    "ghcr.io/wxw-matt/devcontainer-features/command_runner"
+  ],
+
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "desktop"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "betterthantomorrow.calva"
+      ]
+    }
+  },
+  "postCreateCommand": "clj -P", // && pip install ....
+  "postAttachCommand": "/home/vscode/.setup-ide/setup-ide.sh"
+  
+  
+}
+ 
