@@ -2,7 +2,8 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
-      "version": "21"
+      "version": "21",
+      "installMaven": true
     },
     "ghcr.io/devcontainers-contrib/features/clojure-asdf:2": {},
     "ghcr.io/devcontainers/features/desktop-lite:1": {},
@@ -11,13 +12,13 @@
       "packages": "emacs,rlwrap,fonts-hack"
     },
     "ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  }, 
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+   
     "ghcr.io/wxw-matt/devcontainer-features/command_runner:latest": {
             "command1": "bash < <(curl -s https://raw.githubusercontent.com/clojure-lsp/clojure-lsp/master/install)",
             "command2": "bash < <(curl -s ttps://raw.githubusercontent.com/babashka/babashka/master/install)"
         
-  },
+  }},
   "overrideFeatureInstallOrder": [
     "ghcr.io/devcontainers/features/java",
     "ghcr.io/devcontainers-contrib/features/clojure-asdf",
