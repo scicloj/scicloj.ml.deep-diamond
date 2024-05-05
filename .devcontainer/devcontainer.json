@@ -5,6 +5,11 @@
       "version": "21",
       "installMaven": true
     },
+    "ghcr.io/devcontainers/features/nvidia-cuda:1": {
+      "installCudnn": true,
+      "installToolkit": true
+    },
+    "ghcr.io/devcontainers-contrib/features/leiningen-sdkman:2": {},
     "ghcr.io/devcontainers-contrib/features/clojure-asdf:2": {},
     "ghcr.io/devcontainers/features/desktop-lite:1": {},
     "ghcr.io/devcontainers-contrib/features/apt-get-packages:1": {
