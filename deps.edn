@@ -1,1 +1,7 @@
-{:deps {}}
+{:deps {
+        org.clojure/clojure {:mvn/version "1.11.1"}
+        ;scicloj/metamorph.ml {:mvn/version "0.8.2"}
+        ;uncomplicate/deep-diamond {:mvn/version "0.27.0"}
+        ;org.bytedeco/cuda {:mvn/version "12.3-8.9-1.5.10"} 
+        ;org.bytedeco/dnnl-platform {:mvn/version "3.3.4-1.5.10"}
+        org.bytedeco/mkl {:mvn/version "2024.0-1.5.10"}}}
