@@ -1,43 +1,38 @@
-(ns scicloj.ml.deep-diamond.boston)
-
-(set! *unchecked-math* :warn-on-boxed)
-
-  
-(require 
-   '[clojure.java.io :as io]
-   '[clojure.data.csv :as csv]
-   '[clojure.string :as string]
-   '[uncomplicate.commons [core :refer [with-release let-release info view]]]
-   '[uncomplicate.neanderthal
-    [core :refer [transfer transfer! view-vctr native view-ge
-                  cols mv! rk! raw col row nrm2 scal! ncols dim rows]]
-    [real :refer [entry! entry]]
-    [native :refer [native-float fv]]
-    [random :refer [rand-uniform!]]
-    [math :as math :refer [sqrt]]]
-   '[uncomplicate.diamond
-    [tensor :refer [*diamond-factory* tensor connector transformer
-                    desc revert shape input output view-tz batcher]]
-    [dnn :refer [sum activation inner-product fully-connected network init! train! cost]]]
+(ns scicloj.ml.deep-diamond.boston
+  (:require
+     [clojure.java.io :as io]
+     [clojure.data.csv :as csv]
+     [clojure.string :as string]
+     [uncomplicate.commons [core :refer [with-release let-release info view]]]
+     [uncomplicate.neanderthal
+      [core :refer [transfer transfer! view-vctr native view-ge
+                    cols mv! rk! raw col row nrm2 scal! ncols dim rows]]
+      [real :refer [entry! entry]]
+      [native :refer [native-float fv]]
+      [random :refer [rand-uniform!]]
+      [math :as math :refer [sqrt]]]
+     [uncomplicate.diamond
+      [tensor :refer [*diamond-factory* tensor connector transformer
+                      desc revert shape input output view-tz batcher]]
+      [dnn :refer [sum activation inner-product fully-connected network init! train! cost infer!]]]
    
-   '[uncomplicate.diamond.internal.neanderthal.factory :refer [neanderthal-factory]]
-   )
+     [uncomplicate.diamond.internal.neanderthal.factory :refer [neanderthal-factory]]))
+   
 
 
   
-(defonce boston-housing-raw
+(def boston-housing-raw
   (csv/read-csv (slurp (io/resource "boston-housing-prices/boston-housing.csv"))))
 
-(defonce boston-housing
+(def boston-housing
   (doall (shuffle (map #(mapv (fn [^String x] (Double/valueOf x)) %) (drop 1 boston-housing-raw)))))
 
-(defonce x-train (transfer native-float (map (partial take 13) (take 404 boston-housing))))
 
-(defonce y-train (transfer native-float (map (partial drop 13) (take 404 boston-housing))))
+(def x-train (map (partial take 13) (take 404 boston-housing)))
+(def y-train (map (partial drop 13) (take 404 boston-housing)))
+(def x-test (map (partial take 13) (drop 404 boston-housing)))
+(def y-test (map (partial drop 13) (drop 404 boston-housing)))
 
-(defonce x-test (transfer native-float (map (partial take 13) (drop 404 boston-housing))))
-
-(defonce y-test (transfer native-float (map (partial drop 13) (drop 404 boston-housing))))
 
 (defn standardize!
   ([a!]
@@ -58,58 +53,79 @@
              (scal! (/ (sqrt (ncols a!)) s) x-mean))))))
    a!))
 
-(standardize! x-train)
-(standardize! x-test)
-
-(def fact (neanderthal-factory))
 
   
-(def r
-  (with-release [x-tz (tensor fact [404 13] :float :nc)
-                 x-mb-tz (tensor fact [16 13] :float :nc)
-                 y-tz (tensor fact [404 1] :float :nc)
-                 y-mb-tz (tensor fact [16 1] :float :nc)
-                 net-bp (network fact x-mb-tz
-                                 [(fully-connected [64] :relu)
-                                  (fully-connected [64] :relu)
-                                  (fully-connected [1] :linear)])
-                 net (init! (net-bp x-mb-tz :adam))
-                 net-infer (net-bp x-mb-tz)
-                 quad-cost (cost net y-mb-tz :quadratic)
-                 mean-abs-cost (cost net-infer y-mb-tz :mean-absolute)
-                 x-batcher (batcher x-tz (input net))
-                 y-batcher (batcher y-tz y-mb-tz)]
+(defn r [layers x-train y-train x-test y-test]
+  (let [
+        fact (neanderthal-factory)
+        x-train-m (transfer native-float x-train)
 
+
+        y-train-m (transfer native-float y-train)
+
+        x-test-m (transfer native-float x-test)
+
+        y-test-m (transfer native-float y-test)]
+
+    (standardize! x-train-m)
+    (standardize! x-test-m)
+
+    (println :x-train-m--dim  (dim x-train-m))
+    (println :y-train-m--dim  (dim y-train-m))
+    (println :x-test-m--dim  (dim x-test-m))
+    (println :y-test-m--dim  (dim y-test-m))
+
+
+
+    (with-release [x-tz (tensor fact [404 13] :float :nc)
+                   x-mb-tz (tensor fact [16 13] :float :nc)
+                   y-tz (tensor fact [404 1] :float :nc)
+                   y-mb-tz (tensor fact [16 1] :float :nc)
+                   net-bp (network fact x-mb-tz layers)
+
+                   net (init! (net-bp x-mb-tz :adam))
+                   net-infer (net-bp x-mb-tz)
+                   quad-cost (cost net y-mb-tz :quadratic)
+                   mean-abs-cost (cost net-infer y-mb-tz :mean-absolute)
+                   x-batcher (batcher x-tz (input net))
+                   y-batcher (batcher y-tz y-mb-tz)]
 
     
-  ;(println :info (info (first net)))
-  ;(println :.w (.w (first net)))
-    
-    
-    
-    (transfer! x-train (view-vctr x-tz))
-    (transfer! y-train (view-vctr y-tz)) 
-    (train! net x-batcher y-batcher quad-cost 80 []) 
-    
-    (transfer! net net-infer)
-    (net-infer)
-    (mean-abs-cost)
-    
-    {:1-w (transfer (.w (first net)))}
-    )) 
+      (transfer! x-train-m (view-vctr x-tz))
 
-(info  (:1-w r))
+      (transfer! y-train-m (view-vctr y-tz))
+      (train! net x-batcher y-batcher quad-cost 80 [])
+
+      (transfer! net net-infer)
+      (net-infer)
+      (println :mac (mean-abs-cost)))))
+
+       ;; (println :net (transfer! net))
 
 
-(uncomplicate.neanderthal.vect-math/exp (:1-w r))
 
- (with-release [tz (tensor fact [2 3 4 5] :float :nchw)])
- (tensor fact [2 3 4 5] :float :nchw)
-
-(with-release [t
-               ])
+(def layers-1
+  [(fully-connected [64] :relu)
+   (fully-connected [64] :relu)
+   (fully-connected [1] :linear)])
 
 
-(tensor fact [5 5 ] :float :nc)
+(r
+ layers-1
+ x-train y-train x-test y-test)
+;; => {:mean-absolute-cost 2.2119651890205594E33}
 
-           
+
+
+(def layers-2
+  [;; (fully-connected [64] :relu)
+   ;; (fully-connected [64] :relu)
+   (fully-connected [1] :linear)])
+
+
+(r
+ layers-2
+ x-train y-train x-test y-test)
+;; => {:mean-absolute-cost 2.2119634868530054E33}
+
+

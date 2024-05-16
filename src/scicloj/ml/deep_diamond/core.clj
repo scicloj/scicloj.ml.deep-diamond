@@ -1,6 +1,6 @@
 (ns scicloj.ml.deep-diamond.core)
 
-(set! *unchecked-math* :warn-on-boxed)
+;(set! *unchecked-math* true)
 
 (use '[uncomplicate.neanderthal core native])
 
