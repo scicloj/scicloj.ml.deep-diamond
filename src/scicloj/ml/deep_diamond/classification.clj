@@ -28,7 +28,9 @@
 
 
 (defn train [feature-ds target-ds]
+  (def feature-ds feature-ds)
   (uc/let-release [
+
 
                    fact (neanderthal-factory)
 
@@ -62,12 +64,12 @@
                    binary-accuracy (binary-accuracy! y-tz-train prediction)]
 
 
-    (println :binary-accuracy binary-accuracy)
+                  (println :binary-accuracy binary-accuracy)
 
-    {:params (for [layer net
-                   params (dd-proto/parameters layer)]
-               (seq params))
-     :binary-accuracy-train binary-accuracy}))
+                  {:params (for [layer net
+                                 params (dd-proto/parameters layer)]
+                             (seq params))
+                   :binary-accuracy-train binary-accuracy}))
   
 
 (defn- iter [data]
@@ -77,13 +79,6 @@
 (defn predict [feature-ds all-params]
   (def feature-ds feature-ds)
   (uc/let-release [
-
-
-                   ;; x-test (->matrix feature-ds)
-
-
-
-
 
                    fact (neanderthal-factory)
 
@@ -99,8 +94,6 @@
                                        [(dnn/fully-connected [16] :relu)
                                         (dnn/fully-connected [16] :relu)
                                         (dnn/fully-connected [1] :sigmoid)])
-
-
 
 
                    params-iter (iter all-params)
@@ -120,20 +113,13 @@
 
 
 
-                   prediction-1 (dnn/infer! net x-tz-test)
-                   prediction-2 (dnn/infer! net (x-batcher-test))
-                   prediction-3 (dnn/infer! net x-batcher-test)]
+                   prediction (dnn/infer! net x-tz-test)]
 
 
-
-
-    (println :prediction-1-test prediction-1)
-    (println :prediction-2-test prediction-2)
-    (println :prediction-3-test prediction-3)
-
+    (println :prediction-1-test prediction)
 
     (tc/dataset
-     {:prediction (seq prediction-1)})))
+     {:prediction (seq prediction)})))
       
       
 
