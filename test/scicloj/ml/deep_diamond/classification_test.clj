@@ -23,9 +23,6 @@
       :train-ds
       (ds-mod/set-inference-target :y)))
 
-(frequencies
- (-> train-ds :y))
-
 
 (def test-ds
   (-> boston-data
@@ -45,3 +42,8 @@
             (loss/classification-accuracy
              (-> boston-data :test-ds :y)
              (tcc/round (:prediction prediction))))))))
+
+
+
+
+(def m (ml/train train-ds {:model-type :deep-diamond/classification}))
