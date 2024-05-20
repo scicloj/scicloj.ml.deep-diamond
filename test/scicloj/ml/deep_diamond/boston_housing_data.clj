@@ -10,17 +10,16 @@
    [tech.v3.tensor :as tens]))
 
 
-(def max-vocab 10000)
-(def data-size 50000)
-(def train-size 25000)
 (def mb-size 512)
-(def test-size (- data-size train-size))
 (defn read-imdb-master
   ([]
    (->> (io/resource "imdb-sentiment/imdb_master.csv")
         (slurp)
         (csv/read-csv)
-        (drop 1)))
+        (drop 1)
+        (filter (fn  [[_ _ _ assesment]] (not  (= "unsup" assesment))))
+        shuffle))
+
   ([cnt]
    (take cnt (read-imdb-master))))
 
@@ -56,7 +55,7 @@
 
 
 
-(defn encode-reviews [wmap reviews]
+(defn encode-reviews [wmap reviews max-vocab]
   (let [in (tens/native-tensor [(count reviews) max-vocab])
         out (tens/native-tensor [(count reviews) 1])]
     (doall (map #(encode-review wmap %1 %2 %3) reviews (tens/rows in) (tens/rows out)))
@@ -65,7 +64,7 @@
 
 
 
-(defn boston-data []
+(defn boston-data [max-vocab data-size train-size]
   (let [wvec (word-vec (pmap split-review (read-imdb-master)) max-vocab)
         wmap (word-map wvec)
         review-split (split-at train-size (read-imdb-master data-size))
@@ -73,8 +72,8 @@
         train-reviews-text (-> review-split first shuffle)
         test-reviews-text (-> review-split second shuffle)
 
-        train-reviews (encode-reviews wmap train-reviews-text)
-        test-reviews   (encode-reviews wmap test-reviews-text)
+        train-reviews (encode-reviews wmap train-reviews-text max-vocab)
+        test-reviews   (encode-reviews wmap test-reviews-text max-vocab)
         ds-train
         (->
          (first train-reviews)

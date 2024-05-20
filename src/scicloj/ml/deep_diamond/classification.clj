@@ -25,13 +25,17 @@
     (apply pr-str xs)))
 
 (defn train [feature-ds target-ds]
+
   (def feature-ds feature-ds)
   (uc/let-release [
+                   n-dim-0 (tc/row-count feature-ds)
+                   n-dim-1 (tc/column-count feature-ds)
+
                    fact (neanderthal-factory)
 
-                   x-tz-train (dd-tz/tensor fact [boston-data/train-size boston-data/max-vocab] :float :nc)
-                   x-mb-tz-train (dd-tz/tensor fact [boston-data/mb-size boston-data/max-vocab] :float :nc)
-                   y-tz-train (dd-tz/tensor fact [boston-data/train-size 1] :float :nc)
+                   x-tz-train (dd-tz/tensor fact [n-dim-0 n-dim-1] :float :nc)
+                   x-mb-tz-train (dd-tz/tensor fact [boston-data/mb-size n-dim-1] :float :nc)
+                   y-tz-train (dd-tz/tensor fact [n-dim-0 1] :float :nc)
                    y-mb-tz-train (dd-tz/tensor fact [boston-data/mb-size 1] :float :nc)
                    x-batcher-train (dd-tz/batcher x-tz-train x-mb-tz-train)
                    y-batcher-train (dd-tz/batcher y-tz-train y-mb-tz-train)
@@ -54,12 +58,12 @@
 
                    binary-accuracy (binary-accuracy! y-tz-train prediction)]
 
-                  (println :binary-accuracy-train binary-accuracy)
+    (println :binary-accuracy-train binary-accuracy)
 
-                  {:params (for [layer net
-                                 params (dd-proto/parameters layer)]
-                             (seq params))
-                   :binary-accuracy-train binary-accuracy}))
+    {:params (for [layer net
+                   params (dd-proto/parameters layer)]
+               (seq params))
+     :binary-accuracy-train binary-accuracy}))
   
 
 (defn- iter [data]
@@ -70,9 +74,11 @@
   (uc/let-release [
 
                    fact (neanderthal-factory)
+                   n-dim-0 (tc/row-count feature-ds)
+                   n-dim-1 (tc/column-count feature-ds)
 
-                   x-tz-test (dd-tz/tensor fact [boston-data/test-size boston-data/max-vocab] :float :nc)
-                   x-mb-tz-test (dd-tz/tensor fact [boston-data/mb-size boston-data/max-vocab] :float :nc)
+                   x-tz-test (dd-tz/tensor fact [n-dim-0 n-dim-1] :float :nc)
+                   x-mb-tz-test (dd-tz/tensor fact [boston-data/mb-size n-dim-1] :float :nc)
 
 
                    x-batcher-test (dd-tz/batcher x-tz-test x-mb-tz-test)

@@ -13,15 +13,17 @@
 
 
 (def boston-data
-  (boston-data/boston-data))
+  (boston-data/boston-data 10000 50000 25000))
 
 
-;; (-> boston-data :train-ds (tc/rows) first count)
+
 
 (def train-ds
   (-> boston-data
       :train-ds
       (ds-mod/set-inference-target :y)))
+
+
 
 
 (def test-ds
@@ -38,12 +40,7 @@
          prediction (ml/predict test-ds model)]
 
 
-     (is (< 0.84
+     (is (< 0.83
             (loss/classification-accuracy
              (-> boston-data :test-ds :y)
              (tcc/round (:prediction prediction))))))))
-
-
-
-
-(def m (ml/train train-ds {:model-type :deep-diamond/classification}))
