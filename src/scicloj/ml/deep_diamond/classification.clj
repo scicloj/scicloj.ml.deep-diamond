@@ -24,14 +24,9 @@
             *print-readably* true]
     (apply pr-str xs)))
 
-
-
-
 (defn train [feature-ds target-ds]
   (def feature-ds feature-ds)
   (uc/let-release [
-
-
                    fact (neanderthal-factory)
 
                    x-tz-train (dd-tz/tensor fact [boston-data/train-size boston-data/max-vocab] :float :nc)
@@ -56,15 +51,10 @@
                    _ (dnn/train! net x-batcher-train y-batcher-train crossentropy-cost 5 [])
 
                    prediction (dnn/infer! net x-tz-train)
-                   _ (println :prediction-train prediction)
-                   _ (println :y-mb-tz-train y-mb-tz-train)
-                   _ (println :y-tz-train y-tz-train)
-                   _ (println :y-batcher-train y-batcher-train)
 
                    binary-accuracy (binary-accuracy! y-tz-train prediction)]
 
-
-                  (println :binary-accuracy binary-accuracy)
+                  (println :binary-accuracy-train binary-accuracy)
 
                   {:params (for [layer net
                                  params (dd-proto/parameters layer)]
@@ -77,7 +67,6 @@
     #(when (.hasNext it) (.next it))))
 
 (defn predict [feature-ds all-params]
-  (def feature-ds feature-ds)
   (uc/let-release [
 
                    fact (neanderthal-factory)
@@ -111,18 +100,14 @@
                       (apply concat (-> feature-ds tc/rows))
                       (nea-core/view-vctr x-tz-test))
 
-
-
                    prediction (dnn/infer! net x-tz-test)]
 
 
-    (println :prediction-1-test prediction)
+    (println :prediction-test prediction)
 
     (tc/dataset
      {:prediction (seq prediction)})))
       
-      
-
 
 
 
@@ -132,7 +117,6 @@
 
 
   (fn [feature-ds thawed-model {:keys [options model-data target-categorical-maps] :as model}]
-    (def model-data model-data)
     (predict
      feature-ds
      (:params model-data)))

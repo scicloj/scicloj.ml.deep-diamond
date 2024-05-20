@@ -43,10 +43,6 @@
 
 
 (defn encode-review [word-map review x y]
-  (def word-map word-map)
-  (def review review)
-  (def x x)
-  (def y y)
   (let [[_ words sentiment] (split-review review)]
 
     (doseq [idx (map word-map words)]
@@ -72,18 +68,13 @@
 (defn boston-data []
   (let [wvec (word-vec (pmap split-review (read-imdb-master)) max-vocab)
         wmap (word-map wvec)
-        _ (def wmap wmap)
         review-split (split-at train-size (read-imdb-master data-size))
 
         train-reviews-text (-> review-split first shuffle)
         test-reviews-text (-> review-split second shuffle)
-        _ (def train-reviews-text train-reviews-text)
-        _ (def test-reviews-text test-reviews-text)
 
         train-reviews (encode-reviews wmap train-reviews-text)
         test-reviews   (encode-reviews wmap test-reviews-text)
-        _ (def train-reviews train-reviews)
-        _ (def test-reviews test-reviews)
         ds-train
         (->
          (first train-reviews)
