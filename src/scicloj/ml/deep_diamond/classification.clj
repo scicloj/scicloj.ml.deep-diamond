@@ -1,83 +1,153 @@
 (ns scicloj.ml.deep-diamond.classification
   (:require
+   [tablecloth.api :as tc]
+   [scicloj.ml.deep-diamond.boston-housing-data :as boston-data]
+   [tablecloth.column.api :as tcc]
    [scicloj.metamorph.ml :as ml]
    [scicloj.ml.deep-diamond.infer :as infer]
-   [scicloj.ml.deep-diamond.text-tools :as text]
-   [uncomplicate.diamond.dnn
-    :refer [cost fully-connected infer! init! network train!]]
-   [uncomplicate.diamond.internal.cost :refer [binary-accuracy!]]
-   [uncomplicate.diamond.internal.neanderthal.factory
-    :refer [neanderthal-factory]]
-   [uncomplicate.diamond.internal.protocols :refer [parameters]]
-   [uncomplicate.diamond.tensor :refer [batcher tensor]]
-   [uncomplicate.neanderthal.core :refer [transfer! view-vctr]]
-   [uncomplicate.commons.core :refer [let-release]]))
 
+   [uncomplicate.diamond.dnn :as dnn]
+   [uncomplicate.diamond.internal.cost                      :refer [binary-accuracy!] :as dd-cost]
+   [uncomplicate.diamond.internal.neanderthal.factory       :refer [neanderthal-factory]]
+   [uncomplicate.diamond.internal.protocols                 :as dd-proto]
+   [uncomplicate.diamond.tensor  :as dd-tz]
+   [uncomplicate.neanderthal.core  :as nea-core]
+   [uncomplicate.neanderthal.native :as nea-native]
+   [uncomplicate.commons.core  :as uc]))
+
+(set! *print-length* 128)
 
 (defn pr-edn-str [& xs]
-    (binding [*print-length* nil
-              *print-dup* nil
-              *print-level* nil
-              *print-readably* true]
-      (apply pr-str xs)))
-
-(defn train []
-  (let-release [
-
-                fact (neanderthal-factory)
-                x-train (first text/data-train)
-                y-train (second text/data-train)
-
-
-
-                x-tz-train (tensor fact [text/train-size text/max-vocab] :float :nc)
-                x-mb-tz-train (tensor fact [text/mb-size text/max-vocab] :float :nc)
-                y-tz-train (tensor fact [text/train-size 1] :float :nc)
-                y-mb-tz-train (tensor fact [text/mb-size 1] :float :nc)
-                x-batcher-train (batcher x-tz-train x-mb-tz-train)
-                y-batcher-train (batcher y-tz-train y-mb-tz-train)
-
-
-                net-bp (network fact
-                                x-mb-tz-train
-                                [(fully-connected [16] :relu)
-                                 (fully-connected [16] :relu)
-                                 (fully-connected [1] :sigmoid)])
-                net (init! (net-bp x-mb-tz-train :adam))
-
-                crossentropy-cost (cost net y-mb-tz-train :crossentropy)
+  (binding [*print-length* nil
+            *print-dup* nil
+            *print-level* nil
+            *print-readably* true]
+    (apply pr-str xs)))
 
 
 
 
-                _ (transfer! x-train (view-vctr x-tz-train))
-                _ (transfer! y-train (view-vctr y-tz-train))
-                _ (train! net x-batcher-train y-batcher-train crossentropy-cost 5 [])
+(defn train [feature-ds target-ds]
+  (uc/let-release [
 
-                prediction (infer! net x-mb-tz-train)
-                binary-accuracy (binary-accuracy! y-mb-tz-train prediction)]
+                   fact (neanderthal-factory)
+
+                   x-tz-train (dd-tz/tensor fact [boston-data/train-size boston-data/max-vocab] :float :nc)
+                   x-mb-tz-train (dd-tz/tensor fact [boston-data/mb-size boston-data/max-vocab] :float :nc)
+                   y-tz-train (dd-tz/tensor fact [boston-data/train-size 1] :float :nc)
+                   y-mb-tz-train (dd-tz/tensor fact [boston-data/mb-size 1] :float :nc)
+                   x-batcher-train (dd-tz/batcher x-tz-train x-mb-tz-train)
+                   y-batcher-train (dd-tz/batcher y-tz-train y-mb-tz-train)
+
+
+                   net-bp (dnn/network fact
+                                       x-mb-tz-train
+                                       [(dnn/fully-connected [16] :relu)
+                                        (dnn/fully-connected [16] :relu)
+                                        (dnn/fully-connected [1] :sigmoid)])
+                   net (dnn/init! (net-bp x-mb-tz-train :adam))
+
+                   crossentropy-cost (dnn/cost net y-mb-tz-train :crossentropy)
+
+                   _ (nea-core/transfer! (apply concat (-> feature-ds tc/rows)) (nea-core/view-vctr x-tz-train))
+                   _ (nea-core/transfer! (apply concat (-> target-ds tc/rows)) (nea-core/view-vctr y-tz-train))
+                   _ (dnn/train! net x-batcher-train y-batcher-train crossentropy-cost 5 [])
+
+                   prediction (dnn/infer! net x-tz-train)
+                   _ (println :prediction-train prediction)
+                   _ (println :y-mb-tz-train y-mb-tz-train)
+                   _ (println :y-tz-train y-tz-train)
+                   _ (println :y-batcher-train y-batcher-train)
+
+                   binary-accuracy (binary-accuracy! y-tz-train prediction)]
 
 
     (println :binary-accuracy binary-accuracy)
 
     {:params (for [layer net
-                   params (parameters layer)]
+                   params (dd-proto/parameters layer)]
                (seq params))
      :binary-accuracy-train binary-accuracy}))
   
 
+(defn- iter [data]
+  (let [it (.iterator (sequence data))]
+    #(when (.hasNext it) (.next it))))
+
+(defn predict [feature-ds all-params]
+  (def feature-ds feature-ds)
+  (uc/let-release [
 
 
+                   ;; x-test (->matrix feature-ds)
+
+
+
+
+
+                   fact (neanderthal-factory)
+
+                   x-tz-test (dd-tz/tensor fact [boston-data/test-size boston-data/max-vocab] :float :nc)
+                   x-mb-tz-test (dd-tz/tensor fact [boston-data/mb-size boston-data/max-vocab] :float :nc)
+
+
+                   x-batcher-test (dd-tz/batcher x-tz-test x-mb-tz-test)
+
+
+                   net-bp (dnn/network fact
+                                       x-mb-tz-test
+                                       [(dnn/fully-connected [16] :relu)
+                                        (dnn/fully-connected [16] :relu)
+                                        (dnn/fully-connected [1] :sigmoid)])
+
+
+
+
+                   params-iter (iter all-params)
+                   net (dnn/init! (net-bp x-mb-tz-test :adam)
+                                  (fn [t]
+                                    (let [shape (dd-tz/shape t)]
+                                      (println shape)
+                                      (nea-core/transfer!
+                                       ;; (repeatedly (* (first shape) (get 0 shape 1)) rand)
+                                       (params-iter)
+                                       t)
+                                      t)))
+
+                   _ (nea-core/transfer!
+                      (apply concat (-> feature-ds tc/rows))
+                      (nea-core/view-vctr x-tz-test))
+
+
+
+                   prediction-1 (dnn/infer! net x-tz-test)
+                   prediction-2 (dnn/infer! net (x-batcher-test))
+                   prediction-3 (dnn/infer! net x-batcher-test)]
+
+
+
+
+    (println :prediction-1-test prediction-1)
+    (println :prediction-2-test prediction-2)
+    (println :prediction-3-test prediction-3)
+
+
+    (tc/dataset
+     {:prediction (seq prediction-1)})))
+      
+      
 
 
 
 
 (ml/define-model! :deep-diamond/classification
   (fn [feature-ds target-ds options]
-    (train))
+    (train feature-ds target-ds))
 
 
   (fn [feature-ds thawed-model {:keys [options model-data target-categorical-maps] :as model}]
     (def model-data model-data)
-    (infer/predict (:params model-data)))
+    (predict
+     feature-ds
+     (:params model-data)))
   {})
